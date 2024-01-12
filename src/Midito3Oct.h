@@ -5,6 +5,7 @@ using namespace std;
 
 #define B5 83
 #define C3 48
+#define DEFAULT_OCT_AVG 4
 #define ONE_OCTAVE_DIFF 12
 
 enum { OCT_ORIGINAL, OCT_ADJUST, OCT_AVG };
@@ -37,7 +38,7 @@ void writeText(int quotient, int dividend, string& output) {
 void write3Oct(string& output, int note, int adj_oct_val, bool adj_outsiders) {
     int quotient, dividend;
 
-    note += adj_oct_val;
+    note += ((DEFAULT_OCT_AVG - adj_oct_val) * ONE_OCTAVE_DIFF);
 
     // adjust the octaves of outsider notes
     if (adj_outsiders) {
@@ -71,34 +72,11 @@ void tellOctaveAverage(bool isMultipleTrack, int track, int avg) {
         cout << "### The Average Octave of Your Song is " << avg << " ###" << endl;
 }
 
-int setOctaveRange() {
-    string adj_opt, base_str;
-    int base = 4;
-
-    cout << "¡ß Custom Range of Supporting Octaves?" << endl
-        << "(HINT: The default value is [4] -> Octave 3, [4], 5 are supported)" << endl
-        << "1. Yes" << endl
-        << "2. No" << endl
-        << "[Please type 1 or 2]: ";
-
-    cin >> adj_opt;
-
-    switch (adj_opt.at(0)) {
-    case '1':
-        cout << "\tInput your number for setting (1~8): ";
-        cin >> base_str;
-     //   while()
-    }
-
-    return base;
-}
-
 bool isOctAdj() {
     string adj_opt;
     bool bool_adj_octave;
 
-    cout << "¡Þ Adjust the Range of Octaves?" << endl
-        << "(HINT: The default supporting octaves are 3, 4, 5)" << endl
+    cout << "¡Þ Adjust the Range of Octaves to [3, 5]?" << endl
         << "1. Yes" << endl
         << "2. No" << endl
         << "[Please type 1 or 2]: ";
@@ -120,39 +98,6 @@ bool isOctAdj() {
             break;
         }
     }
-}
-
-int isOctAdjByAvg() {
-
-    string adj_opt;
-    bool bool_adj_by_avg;
-
-    cout << endl << "¢¹ How to Adjust the Range of Octaves?" << endl
-        << "1. By Default" << endl
-        << "2. By Average" << endl
-        << "[Please type 1 or 2]: ";
-
-    while (1) {
-        cin >> adj_opt;
-        bool esc = false;
-
-        switch (adj_opt.at(0)) {
-        case '1':
-            esc = true;
-            bool_adj_by_avg = false;
-            break;
-        case '2':
-            esc = true;
-            bool_adj_by_avg = true;
-            break;
-        default:
-            cout << "Try again. [Please type 1 or 2]: ";
-            break;
-        }
-        if (esc)
-            break;
-    }
-    return bool_adj_by_avg;
 }
 
 bool isNoteAdj() {

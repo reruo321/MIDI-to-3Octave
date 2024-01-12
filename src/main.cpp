@@ -2,13 +2,15 @@
 #include "Options.h"
 #include "Midito3Oct.h"
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <filesystem>
 #include <math.h>
 #include <chrono>
 #include <thread>
 
-using namespace std;
+#define DEFAULT_OCT_AVG 4
+
 using namespace smf;
 
 int main(int argc, char** argv) {
@@ -17,45 +19,72 @@ int main(int argc, char** argv) {
     MidiFile midifile;
     string filename, output_name, adj_opt;
     size_t p;
-    int adj_oct_val = 0,
+    int adj_oct_val = DEFAULT_OCT_AVG,
         avg_oct_of_song = 4,
         valid_note_num = 0;
     bool bool_go_next,
         bool_adj_octave = false,
         bool_adj_by_avg = false,
         bool_adj_outsiders = false;
+    ofstream output;
 
-    while (1) {
+    filesystem::path outputDirectory = filesystem::path("./output");
+
+    if (!filesystem::exists(outputDirectory))
+        std::filesystem::create_directory(outputDirectory);
+
+    while (true) {
 
         bool_go_next = false;
 
-        cout << "Input the file name to convert: ";
+        std::cout << "Input the file name to convert: ";
         getline(cin, filename);
+        filename.erase(std::remove(filename.begin(), filename.end(), '\n'), filename.end());
 
-        midifile.read(filename);
+        filesystem::path absolutePath = filesystem::absolute(filename);
+        filename = absolutePath.string();
+
+        std::ifstream fileStream(filename, ios::binary | ios::in);
+
+        if (!fileStream.is_open()) {
+            cerr << "Error: Unable to open the file.\nCurrent working directory: " << filesystem::current_path().string() << endl;
+
+            cerr << "Press enter to exit...";
+            std::cin.get();
+            exit(EXIT_FAILURE);
+        }
+
+        if (!midifile.read(fileStream)) {
+            cerr << "Error: Failed to read MIDI file." << endl;
+
+            cerr << "Press enter to exit...";
+            std::cin.get();
+            exit(EXIT_FAILURE);
+        }
         midifile.doTimeAnalysis();
         midifile.linkNotePairs();
 
         int tracks = midifile.getTrackCount();
 
         if (tracks < 1) {
-            cout << "The MIDI file, " << filename << " seems to have no tracks or invalid..." << endl << endl;
+            std::cout << "The MIDI file, " << filename << " seems to have no tracks or invalid..." << endl << endl;
             continue;
         }
 
+        std::cout << "The MIDI file, " << filename << " has " << tracks << " tracks." << endl << endl;
+
         for (int track = 1; track <= tracks; ++track) {
             string str;
-
             int note;
             long long sum = 0;
             valid_note_num = 0;
 
-            cout << "========== Track " << track << " ==========" << endl;
+            std::cout << "========== Track " << track << " ==========" << endl;
 
             // Calculate the average octave of a track
-            for (int event = 0; event < midifile[track].size(); ++event) {
-                if (midifile[track][event].isNoteOn()) {
-                    note = (int)midifile[track][event][1];
+            for (int event = 0; event < midifile[track - 1].size(); ++event) {
+                if (midifile[track - 1][event].isNoteOn()) {
+                    note = (int)midifile[track - 1][event][1];
 
                     // + octave of a note
                     // Example: C3 => ((48 / 12) - 1) = 3
@@ -64,7 +93,7 @@ int main(int argc, char** argv) {
                 }
             }
             if (valid_note_num <= 0) {
-                cout << "The track is empty..." << endl;
+                std::cout << "The track is empty..." << endl;
                 continue;
             }
 
@@ -73,45 +102,44 @@ int main(int argc, char** argv) {
 
             tellOctaveAverage(tracks > 1, track, avg_oct_of_song);
 
-            for (int event = 0; event < midifile[track].size(); ++event) {
-                if (midifile[track][event].isNoteOn()) {
-                    write3Oct(str, (int)midifile[track][event][1], adj_oct_val, adj_outsiders);
-                    str += std::format("{:.1f}", round_double(midifile[track][event].getDurationInSeconds() * 100)) + "] ";
+            if ((avg_oct_of_song != DEFAULT_OCT_AVG) && (bool_adj_octave = isOctAdj()))
+                adj_oct_val = avg_oct_of_song;
+
+            bool_adj_outsiders = isNoteAdj();
+
+            for (int event = 0; event < midifile[track - 1].size(); ++event) {
+                if (midifile[track - 1][event].isNoteOn()) {
+                    write3Oct(str, (int)midifile[track - 1][event][1], adj_oct_val, bool_adj_outsiders);
+                    str += std::format("{:.1f}", round_double(midifile[track - 1][event].getDurationInSeconds() * 100)) + "] ";
                 }
             }
 
             if (!str.empty()) {
                 str.pop_back();
-                output_name = filename + "_Track_" + to_string(track) + ".txt";
-                ofstream output("./output/" + output_name);
-                if (output.is_open()) {
-                    output << str;
-                    output.close();
+                filesystem::path filenamePath(filename);
+                output_name = filenamePath.stem().string() + "_Track_" + to_string(track) + ".txt";
+
+                filesystem::path outputPath = outputDirectory / output_name;
+                ofstream trackOutput(outputPath.string(), ios::app);
+
+                if (trackOutput.is_open()) {
+                    trackOutput << str;
+                    trackOutput.close();
                 }
                 else {
-                    cout << "Error while writing the output..." << endl;
+                    cerr << "Error while opening file: " << filesystem::absolute("./output/" + output_name) << endl;
                     return -1;
                 }
             }
         }
+        fileStream.close();
         break;
     }
+    output.close();
 
-
-
-
-        if (bool_adj_octave = isOctAdj())
-            bool_adj_by_avg = isOctAdjByAvg();
-
-
-
-
-
-        p = filename.find_last_of(".");
-        filename = filename.substr(0, p);
-        std::filesystem::create_directory("./output");
-
-    }
+    std::cout << "Successfully Converted!" << endl;
+    std::cout << "Press enter to finish the program...";
+    std::cin.ignore(numeric_limits<streamsize>::max(), '\n');
 
     return 0;
 }
