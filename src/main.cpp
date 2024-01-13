@@ -8,6 +8,7 @@
 #include <math.h>
 #include <chrono>
 #include <thread>
+#include <map>
 
 #define DEFAULT_OCT_AVG 4
 
@@ -74,21 +75,26 @@ int main(int argc, char** argv) {
         std::cout << "The MIDI file, " << filename << " has " << tracks << " tracks." << endl << endl;
 
         for (int track = 1; track <= tracks; ++track) {
+            std::map<int, int> highestNoteAtTick;
             string str;
             int note;
+            int tick;
             long long sum = 0;
             valid_note_num = 0;
 
             std::cout << "========== Track " << track << " ==========" << endl;
 
-            // Calculate the average octave of a track
+//            str += ("Tempo: " + to_string(midifi
+            str += ("Tempo: " + to_string(midifile.getTicksPerQuarterNote()) + "\n");
+
             for (int event = 0; event < midifile[track - 1].size(); ++event) {
                 if (midifile[track - 1][event].isNoteOn()) {
                     note = (int)midifile[track - 1][event][1];
+                    tick = midifile[track - 1][event].tick;
 
-                    // + octave of a note
-                    // Example: C3 => ((48 / 12) - 1) = 3
-                    sum += ((note / ONE_OCTAVE_DIFF) - 1);
+                    if (highestNoteAtTick.find(tick) == highestNoteAtTick.end() || note > highestNoteAtTick.at(tick))
+                        highestNoteAtTick.at(tick) = note;
+
                     ++valid_note_num;
                 }
             }
@@ -97,9 +103,15 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            else
-                avg_oct_of_song = static_cast<int>(sum / valid_note_num);
+            for (const auto& h : highestNoteAtTick) {
+                int note = h.second;
 
+                // + octave of a note
+                // Example: C3 => ((48 / 12) - 1) = 3
+                sum += ((note / ONE_OCTAVE_DIFF) - 1);
+            }
+
+            avg_oct_of_song = static_cast<int>(sum / valid_note_num);
             tellOctaveAverage(tracks > 1, track, avg_oct_of_song);
 
             if ((avg_oct_of_song != DEFAULT_OCT_AVG) && (bool_adj_octave = isOctAdj()))
@@ -107,11 +119,12 @@ int main(int argc, char** argv) {
 
             bool_adj_outsiders = isNoteAdj();
 
-            for (int event = 0; event < midifile[track - 1].size(); ++event) {
-                if (midifile[track - 1][event].isNoteOn()) {
-                    write3Oct(str, (int)midifile[track - 1][event][1], adj_oct_val, bool_adj_outsiders);
-                    str += std::format("{:.1f}", round_double(midifile[track - 1][event].getDurationInSeconds() * 100)) + "] ";
-                }
+            for (const auto& h : highestNoteAtTick) {
+                int tick = h.first;
+                int note = h.second;
+
+                write3Oct(str, note, adj_oct_val, bool_adj_outsiders);
+                str += (to_string(tick) + "] ");
             }
 
             if (!str.empty()) {
