@@ -16,7 +16,7 @@ double round_double(double num) {
 }
 
 void writeText(int quotient, int dividend, string& output) {
-    output += "[" + to_string(dividend + 1);
+    output += to_string(dividend + 1);
 
     switch (quotient) {
     case 4:
@@ -32,7 +32,7 @@ void writeText(int quotient, int dividend, string& output) {
         output += "M";
     }
 
-    output += ",";
+    output += "] ";
 }
 
 void write3Oct(string& output, int note, int adj_oct_val, bool adj_outsiders) {

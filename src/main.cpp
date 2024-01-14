@@ -3,6 +3,7 @@
 #include "Midito3Oct.h"
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <iomanip>
 #include <filesystem>
 #include <math.h>
@@ -11,6 +12,7 @@
 #include <map>
 
 #define DEFAULT_OCT_AVG 4
+#define DECIMAL_POINTS 3
 
 using namespace smf;
 
@@ -84,15 +86,14 @@ int main(int argc, char** argv) {
 
             std::cout << "========== Track " << track << " ==========" << endl;
 
-//            str += ("Tempo: " + to_string(midifi
-            str += ("Tempo: " + to_string(midifile.getTicksPerQuarterNote()) + "\n");
-
             for (int event = 0; event < midifile[track - 1].size(); ++event) {
                 if (midifile[track - 1][event].isNoteOn()) {
                     note = (int)midifile[track - 1][event][1];
                     tick = midifile[track - 1][event].tick;
 
-                    if (highestNoteAtTick.find(tick) == highestNoteAtTick.end() || note > highestNoteAtTick.at(tick))
+                    if (highestNoteAtTick.find(tick) == highestNoteAtTick.end())
+                        highestNoteAtTick.insert(make_pair(tick, note));
+                    else if(note > highestNoteAtTick.at(tick))
                         highestNoteAtTick.at(tick) = note;
 
                     ++valid_note_num;
@@ -123,8 +124,13 @@ int main(int argc, char** argv) {
                 int tick = h.first;
                 int note = h.second;
 
+                double absoluteTime = midifile.getTimeInSeconds(tick);
+                std::stringstream ss;
+                ss << std::fixed << std::setprecision(DECIMAL_POINTS) << absoluteTime;
+                std::string timeStr = ss.str();
+
+                str += ("[" + timeStr + ",");
                 write3Oct(str, note, adj_oct_val, bool_adj_outsiders);
-                str += (to_string(tick) + "] ");
             }
 
             if (!str.empty()) {
