@@ -28,7 +28,8 @@ int main(int argc, char** argv) {
     bool bool_go_next,
         bool_adj_octave = false,
         bool_adj_by_avg = false,
-        bool_adj_outsiders = false;
+        bool_adj_outsiders = false,
+        bool_not_high_note = false;
     ofstream output;
 
     filesystem::path outputDirectory = filesystem::path("./output");
@@ -86,16 +87,24 @@ int main(int argc, char** argv) {
 
             std::cout << "========== Track " << track << " ==========" << endl;
 
+            bool_not_high_note = isNotHighestNote();
+
             for (int event = 0; event < midifile[track - 1].size(); ++event) {
                 if (midifile[track - 1][event].isNoteOn()) {
                     note = (int)midifile[track - 1][event][1];
                     tick = midifile[track - 1][event].tick;
 
-                    if (highestNoteAtTick.find(tick) == highestNoteAtTick.end())
-                        highestNoteAtTick.insert(make_pair(tick, note));
-                    else if(note > highestNoteAtTick.at(tick))
-                        highestNoteAtTick.at(tick) = note;
-
+                    if (bool_not_high_note) {
+                        // + octave of a note
+                        // Example: C3 => ((48 / 12) - 1) = 3
+                        sum += ((note / ONE_OCTAVE_DIFF) - 1);
+                    }
+                    else {
+                        if (highestNoteAtTick.find(tick) == highestNoteAtTick.end())
+                            highestNoteAtTick.insert(make_pair(tick, note));
+                        else if (note > highestNoteAtTick.at(tick))
+                            highestNoteAtTick.at(tick) = note;
+                    }
                     ++valid_note_num;
                 }
             }
@@ -104,12 +113,11 @@ int main(int argc, char** argv) {
                 continue;
             }
 
-            for (const auto& h : highestNoteAtTick) {
-                int note = h.second;
-
-                // + octave of a note
-                // Example: C3 => ((48 / 12) - 1) = 3
-                sum += ((note / ONE_OCTAVE_DIFF) - 1);
+            if (!bool_not_high_note) {
+                for (const auto& h : highestNoteAtTick) {
+                    int note = h.second;
+                    sum += ((note / ONE_OCTAVE_DIFF) - 1);
+                }
             }
 
             avg_oct_of_song = static_cast<int>(sum / valid_note_num);
@@ -120,17 +128,35 @@ int main(int argc, char** argv) {
 
             bool_adj_outsiders = isNoteAdj();
 
-            for (const auto& h : highestNoteAtTick) {
-                int tick = h.first;
-                int note = h.second;
+            if (bool_not_high_note) {
+                for (int event = 0; event < midifile[track - 1].size(); ++event) {
+                    if (midifile[track - 1][event].isNoteOn()) {
+                        int tick = midifile[track - 1][event].tick;
+                        int note = midifile[track - 1][event][1];
 
-                double absoluteTime = midifile.getTimeInSeconds(tick);
-                std::stringstream ss;
-                ss << std::fixed << std::setprecision(DECIMAL_POINTS) << absoluteTime;
-                std::string timeStr = ss.str();
+                        double absoluteTime = midifile.getTimeInSeconds(tick);
+                        std::stringstream ss;
+                        ss << std::fixed << std::setprecision(DECIMAL_POINTS) << absoluteTime;
+                        std::string timeStr = ss.str();
 
-                str += ("[" + timeStr + ",");
-                write3Oct(str, note, adj_oct_val, bool_adj_outsiders);
+                        str += ("[" + timeStr + ",");
+                        write3Oct(str, note, adj_oct_val, bool_adj_outsiders);
+                    }
+                }
+            }
+            else {
+                for (const auto& h : highestNoteAtTick) {
+                    int tick = h.first;
+                    int note = h.second;
+
+                    double absoluteTime = midifile.getTimeInSeconds(tick);
+                    std::stringstream ss;
+                    ss << std::fixed << std::setprecision(DECIMAL_POINTS) << absoluteTime;
+                    std::string timeStr = ss.str();
+
+                    str += ("[" + timeStr + ",");
+                    write3Oct(str, note, adj_oct_val, bool_adj_outsiders);
+                }
             }
 
             if (!str.empty()) {
@@ -156,31 +182,10 @@ int main(int argc, char** argv) {
     }
     output.close();
 
-    std::cout << "Successfully Converted!" << endl;
-    std::cout << "Press enter to finish the program...";
-    std::cin.ignore(numeric_limits<streamsize>::max(), '\n');
+    std::cout << "The MIDI file is converted successfully!" << endl;
+    std::cout << "Press enter to exit...";
+    std::cin.get();
+    exit(EXIT_SUCCESS);
 
     return 0;
 }
-
-/*
-* For Debug:
-* 
-cout << "TPQ: " << midifile.getTicksPerQuarterNote() << endl;
-if (tracks > 1) cout << "TRACKS: " << tracks << endl;
-    for (int track = 0; track < tracks; track++) {
-    if (tracks > 1) cout << "\nTrack " << track << endl;
-    cout << "Tick\tSeconds\tDur\tMessage" << endl;
-    for (int event = 0; event < midifile[track].size(); event++) {
-        cout << dec << midifile[track][event].tick;
-        cout << '\t' << dec << midifile[track][event].seconds;
-        cout << '\t';
-        if (midifile[track][event].isNoteOn())
-            cout << midifile[track][event].getDurationInSeconds();
-        cout << '\t';
-        for (int i = 0; i < midifile[track][event].size(); i++)
-            cout << (int)midifile[track][event][i] << ' ';
-        cout << endl;
-    }
-}
-*/

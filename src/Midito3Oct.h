@@ -65,6 +65,39 @@ void write3Oct(string& output, int note, int adj_oct_val, bool adj_outsiders) {
     writeText(quotient, dividend, output);
 }
 
+bool isNotHighestNote() {
+
+    string high_note;
+    bool bool_high_note;
+
+    cout << endl << "@ Process all notes normally? @" << endl
+        << "1. Yes." << endl
+        << "2. No. If Polyphony, Process the Highest Note Only" << endl
+        << "[Please type 1 or 2]: ";
+
+    while (1) {
+        cin >> high_note;
+        bool esc = false;
+
+        switch (high_note.at(0)) {
+        case '1':
+            esc = true;
+            bool_high_note = true;
+            break;
+        case '2':
+            esc = true;
+            bool_high_note = false;
+            break;
+        default:
+            cout << "Try again. [Please type 1 or 2]: ";
+            break;
+        }
+        if (esc)
+            break;
+    }
+    return bool_high_note;
+}
+
 void tellOctaveAverage(bool isMultipleTrack, int track, int avg) {
     if (isMultipleTrack)
         cout << "### The Average Octave of Track " << track << " is " << avg << " ###" << endl;
@@ -76,7 +109,7 @@ bool isOctAdj() {
     string adj_opt;
     bool bool_adj_octave;
 
-    cout << "б▐ Adjust the Range of Octaves to [3, 5]?" << endl
+    cout << "@ Adjust the Range of Octaves to [3, 5]? @" << endl
         << "1. Yes" << endl
         << "2. No" << endl
         << "[Please type 1 or 2]: ";
@@ -105,7 +138,7 @@ bool isNoteAdj() {
     string adj_opt;
     bool bool_note_adj;
 
-    cout << endl << "бс Process Notes Outside of Supporting Octaves: Adjust or Discard?" << endl
+    cout << endl << "@ Adjust Notes Outside of Supporting Octaves? @" << endl
         << "1. Adjust" << endl
         << "2. Discard" << endl
         << "[Please type 1 or 2]: ";
