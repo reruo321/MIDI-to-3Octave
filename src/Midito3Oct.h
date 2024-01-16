@@ -10,11 +10,6 @@ using namespace std;
 
 enum { OCT_ORIGINAL, OCT_ADJUST, OCT_AVG };
 
-double round_double(double num) {
-    double d = pow(10, 1);
-    return round(num * d) / d;
-}
-
 void writeText(int quotient, int dividend, string& output) {
     output += to_string(dividend + 1);
 
@@ -81,10 +76,14 @@ bool isNotHighestNote() {
 
         switch (high_note.at(0)) {
         case '1':
+        case 'Y':
+        case 'y':
             esc = true;
             bool_high_note = true;
             break;
         case '2':
+        case 'N':
+        case 'n':
             esc = true;
             bool_high_note = false;
             break;
@@ -100,9 +99,9 @@ bool isNotHighestNote() {
 
 void tellOctaveAverage(bool isMultipleTrack, int track, int avg) {
     if (isMultipleTrack)
-        cout << "### The Average Octave of Track " << track << " is " << avg << " ###" << endl;
+        cout << endl << "### The Average Octave of Track " << track << " is " << avg << " ###" << endl;
     else
-        cout << "### The Average Octave of Your Song is " << avg << " ###" << endl;
+        cout << endl << "### The Average Octave of Your Song is " << avg << " ###" << endl;
 }
 
 bool isOctAdj() {
