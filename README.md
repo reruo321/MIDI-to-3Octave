@@ -3,4 +3,4 @@ Basic C++ MIDI-to-3Octave-Text converter for further development on various prog
 
 The output can be used as an input of the music-playing programs which has three-octave limit.
 
-This program uses [Midifile library](https://github.com/craigsapp/midifile).
+The program uses an open source library, [Midifile](https://github.com/craigsapp/midifile).
