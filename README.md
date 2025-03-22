@@ -6,3 +6,5 @@ The output .text file can be used as an input for several music-playing programs
 To be user-frendly, its output would be the text file written in English musical note expression.
 
 The program uses an open source library, [Midifile](https://github.com/craigsapp/midifile).
+
+## Text File Output Syntax
